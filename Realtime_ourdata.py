@@ -13,10 +13,10 @@ data_path = os.getcwd()
 
 dataframes_original = {}
 
-# Mapear os estados 
+# Maping states 
 trials_dict = {'neutral': 0, 'relaxed': 1, 'concentrating': 2}
 
-# Parâmetros dos filtros
+# Filters parametes
 notch_freq = 50 # Notch
 quality_factor = 40
 fs = 256  # Sampling rate in Hz
@@ -25,7 +25,7 @@ highcut = 90 # Low-pass
 lowcut = 4 # High-pass
 order = 8
 
-# Aplicação dos parâmetros dos filtros
+# Filters
 b_notch, a_notch = iirnotch(notch_freq, quality_factor, fs)
 sos = iirfilter(order, highcut, btype='lowpass', analog=False, ftype='butter', fs=256, output='sos')
 b_hp, a_hp = butter(order, lowcut, btype='highpass', fs=256)
@@ -33,18 +33,18 @@ b_hp, a_hp = butter(order, lowcut, btype='highpass', fs=256)
 # Create RF classifier
 rf_classifier = RandomForestClassifier(max_depth= None, min_samples_leaf=1, min_samples_split=2, n_estimators=100)
 
-# Variáveis globais para armazenar os dados filtrados
+# Dictionary for filtered data
 predicted_labels = []
 
-# Tamanho do chunk em segundos
+# chunk size (sec)
 chunk_size_seconds = 3
 chunk_size_samples = fs * chunk_size_seconds
 overlap_samples = chunk_size_samples // 2 # Sobreposição entre os chunks (50%)
 
-# Banda de interesse
+# Range of interest
 beta = (12, 35)
 
-# Função para carregar os dados .xdf
+# Load data from .xdf
 def load_data(file_path):
     streams, _ = pyxdf.load_xdf(file_path)
     eeg_data = None
@@ -94,23 +94,22 @@ def process_files(data_path):
             file_path = os.path.join(data_path, file)
             estado = file.split('.')[0]
 
-            # Carregar os dados do arquivo .xdf
+            # Load data .xdf
             data = load_data(file_path)
 
-            # Verificar o comprimento dos dados
+            # Check data length
             num_samples = len(data)
             if num_samples < chunk_size_samples:
                 print("Data too short, skipping...")
                 continue
 
-            # Iterar sobre os chunks
             for i in range(0, num_samples - chunk_size_samples + 1, overlap_samples):
                 chunk_data = data.iloc[i:i + chunk_size_samples, :]
 
-                # Aplicar filtros
+                # Filtering
                 filtered_data = apply_filters(chunk_data)
 
-                # Extrair características
+                # Extracting features
                 multitaper_features, beta_powers = extract_features(filtered_data)
 
                 if len(multitaper_features) > 0:
@@ -136,13 +135,13 @@ def process_files(data_path):
                     labels = [estado] * all_data.shape[0]
                     rf_classifier.fit(all_data, labels)
 
-                    # Previsões
+                    # Predicts
                     y_pred = rf_classifier.predict(all_data)
                     y_pred_num = trials_dict[y_pred[0]]
                     print("Predicted label:", y_pred_num)
 
                     time.sleep(0.3)
 
-while True: # Executar a função para processar os arquivos e plotar em tempo real
+while True: # Run the function to process the files and plot in real time
     process_files(data_path)
-    time.sleep(5)  # Espera por 5 segundos antes de verificar novamente os arquivos
+    time.sleep(5)  # 5 seconds delay

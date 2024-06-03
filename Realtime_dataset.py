@@ -11,10 +11,10 @@ data_path = os.getcwd()
 
 dataframes_original = {}
 
-# Mapear os estados 
+# Maping states 
 trials_dict = {'neutral': 0, 'relaxed': 1, 'concentrating': 2}
 
-# Parâmetros dos filtros
+# Filters parametes
 notch_freq = 50 # Notch
 quality_factor = 40
 fs = 256  # Sampling rate in Hz
@@ -23,7 +23,7 @@ highcut = 90 # Low-pass
 lowcut = 4 # High-pass
 order = 8
 
-# Aplicação dos parâmetros dos filtros
+# Filters
 b_notch, a_notch = iirnotch(notch_freq, quality_factor, fs)
 sos = iirfilter(order, highcut, btype='lowpass', analog=False, ftype='butter', fs=256, output='sos')
 b_hp, a_hp = butter(order, lowcut, btype='highpass', fs=256)
@@ -31,22 +31,22 @@ b_hp, a_hp = butter(order, lowcut, btype='highpass', fs=256)
 # Create RF classifier
 rf_classifier = RandomForestClassifier(max_depth= None, min_samples_leaf=1, min_samples_split=2, n_estimators=100)
 
-# Variáveis globais para armazenar os dados filtrados
+# Dictionary for filtered data
 predicted_labels = []
 
-# Tamanho do chunk em segundos
+# chunk size (sec)
 chunk_size_seconds = 3
 chunk_size_samples = fs * chunk_size_seconds
-overlap_samples = chunk_size_samples // 2 # Sobreposição entre os chunks (50%)
+overlap_samples = chunk_size_samples // 2 # Overlapping chunks (50%)
 
-# Banda de interesse
+# Range of interest
 beta = (12, 35)
 
-# Função para carregar os dados de um arquivo CSV
+# Load data from .CSV
 def load_data(file_path):
     df = pd.read_csv(file_path)
     data = df.iloc[:, 1:5] 
-    num_samples = df.shape[0]  # Obtém o número de samples
+    num_samples = df.shape[0]
     return data, num_samples
 
 # Low-pass, high-pass e notch
@@ -68,7 +68,7 @@ def calculate_average_power(freq, magnitude, low_freq, high_freq):
 
 def extract_features(data):
     multitaper_features = []
-    beta_powers = []  # Lista para armazenar os valores de beta_power
+    beta_powers = []  # List for beta_power values
     
     for column in data.columns:
         psd_mt, freq_mt = psd_array_multitaper(data[column], fs, normalization='full', verbose=0)
@@ -77,7 +77,7 @@ def extract_features(data):
         beta_powers.append(beta_power)
     
     multitaper_features = np.vstack(multitaper_features).T
-    beta_powers = np.array(beta_powers).reshape(1, -1)  # Transformar em array numpy e remodelar
+    beta_powers = np.array(beta_powers).reshape(1, -1)  # Reshape
     return multitaper_features, beta_powers
 
 def process_files(data_path):
@@ -98,7 +98,6 @@ def process_files(data_path):
                     print("Data too short, skipping...")
                     continue
 
-                # Iterar sobre os chunks
                 for i in range(0, num_samples - chunk_size_samples + 1, overlap_samples):
                     chunk_data = data.iloc[i:i + chunk_size_samples, :]
                     
@@ -131,13 +130,13 @@ def process_files(data_path):
                         labels = [estado] * all_data.shape[0]
                         rf_classifier.fit(all_data, labels)
                         
-                        # Previsões
+                        # Predicts
                         y_pred = rf_classifier.predict(all_data)
                         y_pred_num = trials_dict[y_pred[0]]
                         print("Predicted label:", y_pred_num)
 
                         time.sleep(0.3)
 
-while True: # Executar a função para processar os arquivos e plotar em tempo real
+while True: # Run the function to process the files and plot in real time
     process_files(data_path)
-    time.sleep(5)  # Espera por 5 segundos antes de verificar novamente os arquivos
+    time.sleep(5)  # Delay
