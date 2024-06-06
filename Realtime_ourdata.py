@@ -16,7 +16,7 @@ dataframes_original = {}
 # Maping states 
 trials_dict = {'neutral': 0, 'relaxed': 1, 'concentrating': 2}
 
-# Filters parametes
+# Filters parameters
 notch_freq = 50 # Notch
 quality_factor = 40
 fs = 256  # Sampling rate in Hz
@@ -39,7 +39,7 @@ predicted_labels = []
 # chunk size (sec)
 chunk_size_seconds = 3
 chunk_size_samples = fs * chunk_size_seconds
-overlap_samples = chunk_size_samples // 2 # Sobreposição entre os chunks (50%)
+overlap_samples = chunk_size_samples // 2 # Overlapping chunks (50%)
 
 # Range of interest
 beta = (12, 35)
